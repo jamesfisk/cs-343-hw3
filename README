@@ -1,0 +1,23 @@
+HW03 Planning Report
+CS 343 Artificial Intelligence
+Group 7 James Fisk & Kevin Hinojosa
+
+Tiling Approximator
+
+Our Tiling Agent stores 64 Q-values, one for each tile in the coarse grid. We convert a fine grain location and action to a coarse grain destination tile. The tile location and the updated Q-value are set in the Q-value table. 
+
+We implemented checks to try to prevent Steve from running in to walls during his exploration. In get_possible_actions we do not consider an action if it results in crossing a grid where a wall exists. We also sort the actions based on the sensor values in observations to order actions in decreasing order of sensor value. This enhancement ensures that the action with the largest value in a direction away from a wall is chosen in the event that multiple actions have the same Q-value.
+
+
+Nearest Neighbors Approximator
+
+Our Nearest Neighbors Agent stores a Q-value for each tile in the 8x8 grid. We changed update to take a reward value and a max_value in order to calculate the new Q-values for each of the 3 nearest neighbor tiles for the destination fine grain location. 
+
+We also changed the end method to use our new update method in order to calculate the updated Q-value with the end reward. 
+
+Possible_actions an action is considered a possible action if it does not run Steve in to a wall or try to go outside of the maze boundaries. The action is also eliminated if the sensor value in that action direction is less than 0.7. 
+
+Get_max_action considers each possible action and calculates the value for each action using the equations in the problem statement. The action with the largest value is chosen as the max_action.
+ 
+
+Our agents do not require special instructions to run.
