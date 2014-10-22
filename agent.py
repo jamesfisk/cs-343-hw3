@@ -181,6 +181,9 @@ class MyTilingRLAgent(MyTabularRLAgent):
         @param epsilon parameter for the epsilon-greedy policy (between 0 and 1)
         """
         MyTabularRLAgent.__init__(self, gamma, alpha, epsilon) # initialize the superclass
+        for i in range(8):
+          for j in range(8):
+             self.Q[(i, j)] = 0
 
     def update(self, observations, action, new_value):
         """
@@ -229,10 +232,6 @@ class MyTilingRLAgent(MyTabularRLAgent):
         else:
             return self.Q[coarse_loc]
 
-    """
-    Modify one or both of these to approach performance of the tabular RL agent in coarse world
-    But this is only for best performance?
-    """
     def get_possible_actions(self, observations):
         """
         Get the possible actions that can be taken given the state (observations)
@@ -321,12 +320,10 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
                 self.Q[coarse_loc1] = 0
             self.Q[coarse_loc1] = self.Q[coarse_loc1] + self.alpha * item[1] * (r + self.gamma * max_value - self.Q[coarse_loc1])
 
-        print "self.Q ", self.Q
-        #self.draw_q(coarse_loc)
     
     def end(self, time, reward):
         """
-        receive the reward for the last observation
+        Receive the reward for the last observation
         """
         # get the reward from the last action
         r = reward[0]
@@ -370,7 +367,7 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
 
     def get_max_action(self, observations):
         """
-        get the action that is currently estimated to produce the highest Q
+        Get the action that is currently estimated to produce the highest Q
         """
         actions = self.get_possible_actions(observations)
         max_action = actions[0]
@@ -384,24 +381,18 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
                 self.Q[item[0]] = 0
             max_value += self.Q[item[0]] * item[1]
         
-        #print "possible action {}, value {}".format(max_action, max_value) 
-        
         for a in actions[1:]:
             neighbors = self.neighbors(observations, a)
             distances = self.distance(observations, a, neighbors)
             weights = self.weight(observations, distances)
-            #print "my weights {}".format(weights), str(a)
             value = 0
             for item in weights:
                 if item[0] not in self.Q:
                     self.Q[item[0]] = 0
                 value += self.Q[item[0]] * item[1]
-            print "possible action {}, value {} ".format(a, value), 
             if value > max_value:
                 max_value = value
                 max_action = a
-        print
-        print "max action and max value {}, {}".format(max_action, max_value)
         return (max_action, max_value)
 
 
@@ -420,8 +411,8 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
             if ( ((coarse_loc[0], coarse_loc[1]), (initial_coarse[0], initial_coarse[1])) not in get_environment().maze.walls and
                     coarse_loc[0] <= 7 and coarse_loc[0] >= 0 and coarse_loc[1] >= 0 and coarse_loc[1] <= 7):
                 
-                #if ( observations[action + 2] > .7):
-                    #print "observation {} and action {}".format(observations[action + 2], action)
+                #Save space and time by accounting for nearby walls
+                if ( observations[action + 2] > .7):
                     possible_actions.append(action)
         
         return possible_actions
@@ -429,7 +420,7 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
 
     def get_epsilon_greedy(self, observations, max_action = None, max_value = None):
         """
-        get the epsilon-greedy action
+        Get the epsilon-greedy action
         """
         actions = self.get_possible_actions(observations)
         if random.random() < self.epsilon: # epsilon of the time, act randomly
@@ -445,8 +436,6 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
     def predict(self, observations, action):
         """
         Look up the Q-value for the given state (observations), action pair.
-        Need to look up the value of the 8x8 tile the position is currently
-        a part of. 
         """
         o = tuple([x for x in observations])
         #convert x,y to tile position
@@ -459,6 +448,9 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
             return self.Q[coarse_loc]
 
     def fine2coarse(self, observations, action):
+				"""
+				Get the coarse grained location after a fine grained action
+				"""
         o = tuple([x for x in observations])
         
         fine_loc = [o[0], o[1]]
@@ -476,6 +468,9 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
         return coarse_loc
 
     def fine_loc_after_action(self, observations, action):
+				"""
+		    Get the fine grained location of agent after a specified action
+				"""
         o = tuple([x for x in observations])
         
         fine_loc = [o[0], o[1]]
@@ -493,6 +488,9 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
 
 
     def weight (self, observations, distances):
+			 """
+			 Calculate the weight of each move given distance
+			 """
        sum_all = 0
        weights = []
        for item in distances:
@@ -500,7 +498,6 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
        for item in distances:
            weights.append((item[0], 1.0 - (item[1] / sum_all)))
        weights.sort(key=lambda tup : tup[1])
-       #print("weights: ", weights)
        return weights
 
 
@@ -514,12 +511,10 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
        for item in neighbors:
            fine_loc_of_big_tile = get_environment().maze.rc2xy(item[0], item[1])
            my_fine_loc = self.fine_loc_after_action(observations, action)
-           #print "my fine location: {} my coarse location {} my actual fine location {}".format(fine_loc, item, (o[0], o[1]))
            distance = math.sqrt((fine_loc_of_big_tile[0] - my_fine_loc[0]) ** 2 + (fine_loc_of_big_tile[1] - my_fine_loc[1]) ** 2)
            neighbor_distance.append((item, distance))
 
        neighbor_distance.sort(key=lambda tup : tup[1]) 
-       #print("distances: ", neighbor_distance)
        return neighbor_distance[:3]
        
 
@@ -530,20 +525,17 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
         o = tuple([x for x in observations])
         #convert x,y position to tile position
         coarse_loc = self.fine2coarse(observations, action)
-        #print "Considering neighbor {} ".format(coarse_loc)
         r1 = coarse_loc[0]
         c1 = coarse_loc[1]
         neighbors = []
         for r in range(-1, 2):
             for c in range(-1, 2):
-                #In maze
-                
+                #Check position is in maze
                 if ((r1 + r >= 0) and (r1 + r <= 7) and (c1 + c >= 0) and (c1 + c <= 7)):
                     #No simple walls
                     if not ((r1, c1), (r1 + r, c1 + c)) in get_environment().maze.walls:   
                          #No complex walls
-                         #print "neighbor {},{}".format(r1+r, c1+c)
-                         if (r != 0 and c != 0):     #Diagonals
+                         if (r != 0 and c != 0):     #Check for diagonals
                              if ((((r1, c1), (r1 + r, c1)) not in get_environment().maze.walls and
                                 ((r1 + r, c1), (r1 + r, c1 + c)) not in get_environment().maze.walls) or
                                 (((r1, c1), (r1, c1 + c)) not in get_environment().maze.walls and
@@ -551,6 +543,5 @@ class MyNearestNeighborsRLAgent(MyTabularRLAgent):
                                     neighbors.append((r1 + r, c1 + c))
                          else:
                              neighbors.append((r1 + r, c1 + c))
-        #print("final neighbors ", neighbors)
         return neighbors
 
